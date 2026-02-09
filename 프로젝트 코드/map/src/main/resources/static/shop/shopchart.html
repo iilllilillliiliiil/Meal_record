@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+<input type="text" name="shopid" class="form-control" value="" readonly style="display:none;">
+<h5>날자별 판매량</h5>
+<canvas id="salesChart" width="400px" height="200px" style="display: block;box-sizing: border-box;max-height: 300px;max-width: 600px;"></canvas>
+<h5>메뉴별 비율</h5>
+<canvas id="pieChart" width="400px" height="200px" style="display: block;box-sizing: border-box;max-height: 300px;max-width: 600px;"></canvas>
+
+<script>
+    var shop_id = document.getElementsByName('shopid')[0].value;
+
+    fetch('/api/chart1?shop_id='+shop_id)
+    .then(response => response.json())
+    .then(data => {
+        const labels = data.map(item => item.label2);
+        const quantities = data.map(item => item.data1);
+
+        const ctx = document.getElementById('salesChart').getContext('2d');
+        new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: '판매량',
+                    data: quantities,
+                    backgroundColor: 'rgba(54, 162, 235, 0.6)'
+                }]
+            }
+        });
+    });
+
+    fetch('/api/chart2?shop_id='+shop_id)
+    .then(response => response.json())
+    .then(data => {
+        const labels = data.map(item => item.label2);
+        const quantities = data.map(item => item.data1);
+
+        const ctx = document.getElementById('pieChart').getContext('2d');
+        new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: '판매량',
+                    data: quantities,
+                    backgroundColor: 'rgba(54, 162, 235, 0.6)'
+                }]
+            }
+        });
+    });
+
+</script>
+</body>
+</html>

@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            background: #f7faff;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 500px;
+            width: 100%;
+            margin: 0px;
+        }
+
+        h2 {
+            text-align: center;
+            font-weight: 600;
+            color: #007bff;
+            margin-bottom: 25px;
+        }
+
+        .card {
+            background: #fff;
+            border-radius: 12px;
+            box-shadow: 0 6px 15px rgba(0,0,0,0.08);
+            padding: 30px 25px;
+        }
+
+        label.form-label {
+            font-weight: 500;
+            display: block;
+            margin-top: 15px;
+            margin-bottom: 5px;
+            color: #333;
+        }
+
+        .btn {
+            border-radius: 8px;
+            padding: 12px;
+            font-weight: 600;
+            width: 100%;
+            margin-top: 15px;
+            border: none;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-size: 16px;
+        }
+
+        .btn-submit {
+            background: linear-gradient(135deg, #28a745, #218838);
+            color: #fff;
+        }
+
+        .btn-submit:hover {
+            background: linear-gradient(135deg, #218838, #1e7e34);
+        }
+
+        .btn-cancel {
+            background: #f44336;
+            color: #fff;
+        }
+
+        .btn-cancel:hover {
+            background: #d32f2f;
+        }
+
+        .info-box {
+            margin-bottom: 20px;
+        }
+
+        .info-box input {
+            background: #f1f1f1;
+            border: none;
+            font-weight: bold;
+            text-align: center;
+        }
+        label.form-label {
+            font-weight: 500;
+            display: block;
+            margin-top: 15px;
+            margin-bottom: 5px;
+            color: #333;
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 10px 10px;
+            border-radius: 8px;
+            border: 1px solid #ccc;
+            transition: border 0.3s, box-shadow 0.3s;
+            font-size: 15px;
+            box-sizing: border-box;
+        }
+
+        .form-control::placeholder {
+            color: #999;
+            font-size: 14px;
+            opacity: 1;
+            padding-left: 5px;
+            transition: all 0.3s;
+        }
+
+        .form-control:focus {
+            border-color: #007bff;
+            box-shadow: 0 0 6px rgba(0,123,255,0.3);
+            outline: none;
+        }
+
+        .form-control:focus::placeholder {
+            color: #007bff;
+            font-style: normal;
+        }
+
+        .btn {
+            border-radius: 8px;
+            padding: 12px;
+            font-weight: 600;
+            width: 100%;
+            margin-top: 15px;
+            border: none;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-size: 16px;
+        }
+
+        .btn-submit {
+            background: linear-gradient(135deg, #28a745, #218838);
+            color: #fff;
+        }
+
+        .btn-submit:hover {
+            background: linear-gradient(135deg, #218838, #1e7e34);
+        }
+
+        .btn-cancel {
+            background: #f44336;
+            color: #fff;
+        }
+
+        .btn-cancel:hover {
+            background: #d32f2f;
+        }
+
+        .info-box {
+            margin-bottom: 20px;
+        }
+
+        .info-box input {
+            background: #f1f1f1;
+            border: none;
+            font-weight: bold;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h2>신규 매장 등록</h2>
+    <div class="card">
+        <div class="info-box">
+            <label class="form-label">학교에서의 거리(m)</label>
+            <input type="text" name="distance" class="form-control" readonly>
+        </div>
+        <form id="shopForm">
+            <div>
+                <label class="form-label">매장 이름</label>
+                <input type="text" name="shopname" class="form-control" placeholder="예: 스타벅스 강남점" required>
+            </div>
+
+            <div>
+                <label class="form-label">매장 정보</label>
+                <input type="text" name="shopdetail" class="form-control" >
+            </div>
+
+            <input type="text" name="latitude" class="form-control" style="display:none" value="" readonly>
+            <input type="text" name="longitude" class="form-control" style="display:none" value="" readonly>
+            <br>
+
+            <button type="submit" class="btn btn-submit">매장 등록</button>
+            <button type="button" class="btn btn-cancel" onclick="closeshopModal()">등록 취소</button>
+        </form>
+    </div>
+</div>
+    <script>
+
+        document.getElementById('shopForm').addEventListener('submit', function(e) {
+            e.preventDefault(); // 기본 폼 제출 막기
+
+            const formData = new FormData(this);
+
+            fetch('/api/newshop', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => {
+                if (response.status == 200) {
+                    location.href = location.href;
+                    closeshopModal();
+                }
+
+            // 필요 시 모달 닫기 또는 폼 초기화
+            })
+            .catch(error => {
+                alert("등록도중 오류가 발생!");
+                closeshopModal();
+            });
+        });
+    </script>
+</body>
+</html>

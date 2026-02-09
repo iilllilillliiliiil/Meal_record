@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <style>
+        .button-container {
+            text-align: right;
+            margin-bottom: 10px;
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+        }
+        button {
+            padding: 6px 12px;
+            border: none;
+            border-radius: 4px;
+            cursor:pointer;
+            transition: all 0.2s ease;
+        }
+        button.add {
+            background-color: #FF6384;
+            color:white;
+        }
+        button.add:hover {
+            background-color: #F05170;
+        }
+        button.edit {
+            background-color: #2196F3;
+            color:white;
+        }
+        button.edit:hover {
+            background-color: #1e88e5;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background: #fff;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        th, td {
+            padding: 12px 15px;
+            border-bottom: 1px solid #ddd;
+            text-align: center;
+        }
+        th {
+            background-color: #F26B0F;
+            color: white;
+        }
+        tr:hover {
+            background: #f1f1f1;
+        }
+
+        .image-container {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+        img.menu-img {
+            width: 60px;
+            height: 60px;
+            object-fit: cover;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        /* 수정 input 스타일 */
+        input.edit-input {
+            width: 100%;
+            max-width: 120px;
+            padding: 5px 8px;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+            text-align: center;
+            font-size: 14px;
+            transition: all 0.2s ease;
+            box-shadow: inset 0 1px 3px rgba(0,0,0,0.1);
+        }
+        input.edit-input:focus {
+            outline: none;
+            border-color: #4CAF50;
+            box-shadow: 0 0 5px rgba(76, 175, 80, 0.5);
+        }
+
+        /* 삭제 버튼 스타일 */
+        button.delete {
+            background-color:#e74c3c;
+            color:white;
+            border:none;
+            border-radius:50%;
+            width:20px;
+            height:20px;
+            cursor:pointer;
+            font-weight:bold;
+            display:flex;
+            align-items:center;
+            justify-content:center;
+        }
+        button.delete:hover {
+            background-color:#c0392b;
+        }
+
+        /* 수정(저장) 버튼 스타일 */
+        button.save {
+            background-color:#4CAF50;
+            color:white;
+            border:none;
+            border-radius:50%;
+            width:20px;
+            height:20px;
+            cursor:pointer;
+            font-weight:bold;
+            display:flex;
+            align-items:center;
+            justify-content:center;
+        }
+        button.save:hover {
+            background-color:#388e3c;
+        }
+
+        /* 테이블 컬럼 너비 */
+        td.food-name {
+            width:30%;
+        }
+        td.food-price {
+            width:30%;
+        }
+        td.food-img {
+            width:30%;
+        }
+        td.food-action {
+            width:10%;
+        }
+    </style>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+</head>
+<body>
+<div class="button-container">
+    <button class="add" onclick="openAddModal()">메뉴 추가</button>
+    <button class="edit" onclick="enableEdit()">메뉴 수정</button>
+</div>
+<table>
+    <thead>
+    <tr>
+        <th>메뉴명</th>
+        <th>가격</th>
+        <th>메뉴사진</th>
+        <th></th>
+    </tr>
+    </thead>
+    <tbody id="foodTableBody"></tbody>
+</table>
+
+<input type="text" name="shopid" class="form-control" value="" readonly style="display:none;">
+<script>
+    var shopId = document.getElementsByName('shopid')[0].value;
+
+    var editing = false;
+
+    function loadFoods(){
+    fetch(`/api/shop/${shopId}/foods`).then(res=>res.json()).then(data=>{
+        const tbody = document.getElementById('foodTableBody');
+        tbody.innerHTML='';
+        data.forEach(food=>{
+            const tr = document.createElement('tr');
+            tr.dataset.foodId = food.id;
+            tr.innerHTML = `
+                <td class="food-name">${food.food_Name}</td>
+                <td class="food-price">${food.price.toLocaleString()}</td>
+                <td class="food-img">
+                    <img class="menu-img" src="${food.imgUrl||''}" onclick="addImage(${food.id})" alt="메뉴사진">
+                </td>
+                <td class="food-action">
+                    <button class="delete" onclick="deleteFood(${food.id})">X</button>
+                </td>
+            `;
+            tbody.appendChild(tr);
+        });
+    });
+}
+
+    function openAddModal(){
+        Swal.fire({
+            title:'메뉴 추가',
+            html:`<input id="swal-name" class="swal2-input" placeholder="메뉴명">
+                    <input id="swal-price" type="number" class="swal2-input" placeholder="가격">`,
+            focusConfirm:false,
+            preConfirm:()=>[
+                document.getElementById('swal-name').value,
+                document.getElementById('swal-price').value
+            ]
+        }).then(result=>{
+            if(!result.value) return;
+            const [name, price]=result.value;
+            if(!name||!price){ Swal.fire('입력 오류','메뉴명과 가격은 필수입니다.','warning'); return; }
+            addFood(name, price);
+        });
+    }
+
+    function addFood(name,price){
+        fetch(`/api/shop/${shopId}/foods`,{
+            method:'POST',
+            headers:{'Content-Type':'application/json'},
+            body:JSON.stringify({food_Name:name, price:parseInt(price)})
+        }).then(()=>loadFoods());
+    }
+
+    function enableEdit(){
+        editing = true;
+        const rows = document.querySelectorAll('#foodTableBody tr');
+        rows.forEach(row=>{
+            const nameTd = row.querySelector('.food-name');
+            const priceTd = row.querySelector('.food-price');
+            const foodId = row.dataset.foodId;
+
+            const nameInput = document.createElement('input');
+            nameInput.value=nameTd.innerText;
+            nameInput.className='edit-input';
+            nameTd.innerText=''; nameTd.appendChild(nameInput);
+
+            const priceInput = document.createElement('input');
+            priceInput.type='number';
+            priceInput.value = parseInt(priceTd.innerText.replace(/,/g,'')); // 콤마 제거 후 숫자
+            priceInput.className='edit-input';
+            priceTd.innerText=''; priceTd.appendChild(priceInput);
+
+            const actionBtn = row.querySelector('.food-action button');
+            actionBtn.innerText='✔';
+            actionBtn.classList.remove('delete');
+            actionBtn.classList.add('save');
+            actionBtn.onclick=()=>saveEdit(foodId,nameInput.value,priceInput.value);
+        });
+    }
+
+    function saveEdit(foodId,name,price){
+        fetch(`/api/shop/${shopId}/foods/${foodId}`,{
+            method:'PUT',
+            headers:{'Content-Type':'application/json'},
+            body:JSON.stringify({food_Name:name, price:parseInt(price)})
+        }).then(()=>loadFoods());
+    }
+
+    function deleteFood(foodId){
+        Swal.fire({
+            title:'정말 삭제하시겠습니까?',
+            icon:'warning',
+            showCancelButton:true,
+            confirmButtonText:'삭제',
+            cancelButtonText:'취소'
+        }).then(result=>{
+            if(result.isConfirmed){
+                fetch(`/api/shop/${shopId}/foods/${foodId}`,{method:'DELETE'})
+                    .then(() => {
+                        const row = document.querySelector(`#foodTableBody tr[data-food-id='${foodId}']`);
+                        if(row) row.remove();
+                    });
+            }
+        });
+    }
+
+    function addImage(foodId){
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.accept = 'image/*';
+        input.onchange = async () => {
+            const file = input.files[0];
+            if(!file) return;
+            const formData = new FormData();
+            formData.append('file', file);
+
+            const res = await fetch(`/api/shop/${shopId}/foods/${foodId}/uploadImage`, {
+                method: 'POST',
+                body: formData
+            });
+
+            if(res.ok){
+                const data = await res.json();
+                const imageUrl = data.imageUrl;
+                const row = document.querySelector(`#foodTableBody tr[data-food-id='${foodId}']`);
+                const img = row.querySelector('img.menu-img');
+                img.src = imageUrl || '';
+            } else {
+                Swal.fire('업로드 실패','이미지를 업로드하지 못했습니다.','error');
+            }
+        };
+        input.click();
+    }
+    loadFoods();
+</script>
+</body>
+</html>

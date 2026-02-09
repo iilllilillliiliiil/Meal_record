@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        h5 {
+            text-align: center;
+            color: #2c3e50;
+            margin-bottom: 15px;
+            font-weight: 600;
+        }
+        .chart-container {
+            display: flex;
+            gap: 20px;
+            justify-content: space-between;
+            align-items: stretch;
+            width: 100%;
+        }
+        .chart-card {
+            flex: 1;
+            background: #fff;
+            border-radius: 15px;
+            box-shadow: 0 6px 16px rgba(0,0,0,0.1);
+            padding: 20px;
+            min-width: 0; /* flexbox overflow 방지 */
+        }
+        #dateChart {
+            width: 100% !important;
+            height: 400px !important; /* 그래프 높이 통일 */
+        }
+        #foodChart {
+            width: 100% !important;
+            height: 400px !important; /* 그래프 높이 통일 */
+        }
+    </style>
+</head>
+<body>
+<div class="chart-container">
+    <div class="chart-card">
+        <h5>2주간 날자별 이용자 수</h5>
+        <canvas id="dateChart" width="400px" height="200px" style="display: block;box-sizing: border-box;max-height: 300px;max-width: 600px;"></canvas>
+    </div>
+
+    <div class="chart-card">
+        <h5>2주간 가게 이용자 수</h5>
+        <canvas id="foodChart" width="400px" height="200px" style="display: block;box-sizing: border-box;max-height: 300px;max-width: 600px;"></canvas>
+    </div>
+</div>
+
+<script>
+    fetch('/api/gettotaldatechart')
+    .then(response => response.json())
+    .then(data => {
+        const labels = data.map(item => item.label2);
+        const quantities = data.map(item => item.data1);
+
+        const ctx = document.getElementById('dateChart').getContext('2d');
+        new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: '이용자 수',
+                    data: quantities,
+                    backgroundColor: [
+                        'rgba(75, 192, 192, 0.7)',   // 청록
+                        'rgba(153, 102, 255, 0.7)',   // 보라
+                        'rgba(255, 99, 132, 0.7)',   // 빨강
+                        'rgba(54, 162, 235, 0.7)',   // 파랑
+                        'rgba(255, 206, 86, 0.7)'   // 노랑
+                    ],
+                    borderRadius: 6
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        backgroundColor: '#2c3e50',
+                        titleColor: '#fff',
+                        bodyColor: '#fff'
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        grid: { color: "rgba(200,200,200,0.2)" }
+                    },
+                    x: {
+                        grid: { display: false }
+                    }
+                }
+            }
+        });
+    });
+
+    fetch('/api/gettotalfoodchart')
+    .then(response => response.json())
+    .then(data => {
+        const labels = data.map(item => item.label2);
+        const quantities = data.map(item => item.data1);
+
+        const ctx = document.getElementById('foodChart').getContext('2d');
+        new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: '이용자 수',
+                    data: quantities,
+                    backgroundColor: [
+                        'rgba(80, 200, 120, 0.7)',
+                        'rgba(34, 139, 34, 0.7)'     // 스틸블루
+                    ],
+                    borderRadius: 6
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        backgroundColor: '#2c3e50',
+                        titleColor: '#fff',
+                        bodyColor: '#fff'
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        grid: { color: "rgba(200,200,200,0.2)" }
+                    },
+                    x: {
+                        grid: { display: false }
+                    }
+                }
+            }
+        });
+    });
+
+</script>
+</body>
+</html>

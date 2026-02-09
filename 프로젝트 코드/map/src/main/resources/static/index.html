@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>수강생 점심 식사 이용 분석</title>
+    <link rel="stylesheet" href="libs/ol.css">
+    <style>
+        body {
+            margin: 0;
+            font-family: 'Segoe UI', 'Apple SD Gothic Neo', sans-serif;
+            background: #f4f6f9;
+        }
+        #map { width: 100%; height: 100vh; }
+
+        .header {
+            position: absolute;
+            top: 15px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: white;
+            padding: 10px 20px;
+            border-radius: 50px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+            font-weight: bold;
+            color: #007bff;
+            z-index: 1000;
+        }
+
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 999;
+        }
+
+        /* 모달 창 */
+        .modal-content {
+            position: absolute;
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+        }
+    </style>
+</head>
+<body>
+<div class="header" onclick="totalchartModal()">🍽️ 수강생 점심 식사 이용 분석</div>
+<div class="modal-overlay" id="shopmodal">
+    <div class="modal-content" id="shopmodalContent">
+    </div>
+</div>
+<div class="modal-overlay" id="modal">
+    <div class="modal-content" id="modalContent" style="width: 1000px; background-color:white;">
+    </div>
+</div>
+<div id="map"></div>
+<script src="libs/ol.js"></script>
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script>
+    const daumTileUrl = 'https://map.daumcdn.net/map_skyview/L'+19+'{z}/{y}/{x}.png';
+
+    // OpenLayers에서 다음지도 타일 레이어 생성
+    const daumLayer = new ol.layer.Tile({
+        source: new ol.source.XYZ({
+            url: daumTileUrl,
+            tileSize: 256,
+            projection: 'EPSG:3857',
+            maxZoom: 19,
+            minZoom: 15
+        })
+    });
+
+    const googleLayer = new ol.layer.Tile({
+        source: new ol.source.XYZ({
+            url: 'http://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}',
+            attributions: '© Google',
+            maxZoom: 19,
+            minZoom: 15
+        })
+    });
+
+    const mapcenter = [128.625479, 35.876843];
+    const map = new ol.Map({
+        target: 'map',
+        layers: [googleLayer],
+        view: new ol.View({
+            center: ol.proj.fromLonLat(mapcenter),
+            zoom: 17,
+            maxZoom: 19,
+            minZoom: 15
+        })
+    });
+    // 도면 레이어 로딩
+
+    const feature = new ol.Feature({
+        geometry: new ol.geom.Point(ol.proj.fromLonLat(mapcenter)),
+        name: "경북산업직업전문학교"
+    });
+    // 스타일 지정 (선택사항)
+    feature.setStyle(new ol.style.Style({
+        image: new ol.style.Icon({
+            anchor: [0.3, 35],
+            anchorXUnits: 'fraction',
+            anchorYUnits: 'pixels',
+            src: 'img/icon-school.png'
+        }),
+        text: new ol.style.Text({
+            text: feature.get('name'),
+            offsetY: 25, // 마커 밑에 표시
+            textAlign: 'center',
+            font: '20px Calibri,sans-serif',
+            fill: new ol.style.Fill({color: '#000'}),
+            stroke: new ol.style.Stroke({color: '#fff', width: 2})
+        })
+    }));
+
+    const schoolSource = new ol.source.Vector({
+       features: [feature]
+    });
+
+    const schoolLayer = new ol.layer.Vector({
+        source: schoolSource,
+        name: 'school'
+    });
+
+    schoolLayer.setZIndex(6);
+    map.addLayer(schoolLayer);
+
+    map.on('click', function (evt) { //  마우스 좌클릭
+        let selected = false;
+
+        map.forEachFeatureAtPixel(evt.pixel, function (feature, layer) {
+            if(layer.values_.name == 'MARKER'){
+                selected = true;
+                const shop_id = feature.get('id');
+                $('#modalContent').load('shop/shopMenu.html', function() {
+                    // 외부 값 가져오기
+
+                    // 모달 내부 input에 값 넣기
+
+                    document.querySelector('#modalContent input[name="shopid"]').value = shop_id;
+                    // 모달 표시
+                    document.getElementById('modal').style.display = 'block';
+                    loadDB();
+                });
+                console.log('선택된 식당 id :', shop_id);
+            }
+        });
+    });
+
+    map.getViewport().addEventListener('contextmenu', function (event) { // 마우스 우클릭(관리자용)
+        event.preventDefault(); // 기본 우클릭 메뉴 방지
+
+        let selected = false;
+
+        const pixel = map.getEventPixel(event);
+        const coordinate = map.getCoordinateFromPixel(pixel);
+        const lonLat = ol.proj.toLonLat(coordinate);
+
+        map.forEachFeatureAtPixel(pixel , function (feature, layer) {
+            if(layer.values_.name == 'MARKER'){
+                selected = true;
+
+  	            adminmenuModal(feature.get('id'), feature.get('name'));
+
+                console.log('관리용 식당 id :', feature.get('id'));
+            }
+        });
+
+        if (!selected) {
+  	        newshopModal(lonLat[0].toFixed(6), lonLat[1].toFixed(6));
+        }
+    });
+
+    function adminmenuModal(_id, _name) {
+        $('#modalContent').load('shop/shopadmin.html', function() {
+            // 외부 값 가져오기
+
+            // 모달 내부 input에 값 넣기
+            document.querySelector('#modalContent input[name="shopname"]').value = _name;
+            document.querySelector('#modalContent input[name="shopid"]').value = _id;
+
+            // 모달 표시
+            document.getElementById('modal').style.display = 'block';
+        });
+  	}
+
+    function newshopModal(latitude, longitude) {
+        $('#shopmodalContent').load('shop/shopForm.html', function() {
+            // 외부 값 가져오기
+
+            const point = [latitude, longitude];
+
+            const line = new ol.geom.LineString([mapcenter, point]);
+            const distance = Math.round(ol.sphere.getLength(line, { projection: 'EPSG:4326' }));
+            // 모달 내부 input에 값 넣기
+            document.querySelector('#shopmodalContent input[name="distance"]').value = distance;
+            document.querySelector('#shopmodalContent input[name="latitude"]').value = latitude;
+            document.querySelector('#shopmodalContent input[name="longitude"]').value = longitude;
+
+            // 모달 표시
+            document.getElementById('shopmodal').style.display = 'block';
+        });
+  	}
+
+    function totalchartModal() {
+        $('#modalContent').load('shop/totalchart.html', function() {
+            // 외부 값 가져오기
+
+            // 모달 내부 input에 값 넣기
+
+            // 모달 표시
+            document.getElementById('modal').style.display = 'block';
+        });
+  	}
+
+  	function closeshopModal() {
+  	    $('#shopmodal').hide();
+        $('#shopmodalContent').empty(); // 폼 제거
+
+  	}
+
+
+    function openModal() {
+        $('#modalContent').load('', function() {
+            // 외부 값 가져오기
+
+            // 모달 표시
+            document.getElementById('modal').style.display = 'block';
+        });
+  	}
+
+  	function closeModal() {
+  	    $('#modal').hide();
+        $('#modalContent').empty(); // 폼 제거
+  	}
+
+    fetch('/api/drawings')
+        .then(res => res.json())
+        .then(data => {
+            const markers = data.map(loc => {
+                const feature = new ol.Feature({
+                    geometry: new ol.geom.Point(ol.proj.fromLonLat([loc.latitude, loc.longitude])),
+                    id: loc.id,
+                    name: loc.shop_name
+                });
+                // 스타일 지정 (선택사항)
+                feature.setStyle(new ol.style.Style({
+                    image: new ol.style.Icon({
+                        anchor: [0.3, 35],
+                        anchorXUnits: 'fraction',
+                        anchorYUnits: 'pixels',
+                        //src: 'http://map.vworld.kr/images/ol3/marker_blue.png'
+                        src: 'img/icon-food.png'
+                    }),
+                    text: new ol.style.Text({
+                        text: feature.get('name'),
+                        offsetY: 25, // 마커 밑에 표시
+                        textAlign: 'center',
+                        font: '20px Calibri,sans-serif',
+                        fill: new ol.style.Fill({color: '#000'}),
+                        stroke: new ol.style.Stroke({color: '#fff', width: 2})
+                    })
+                }));
+
+                return feature;
+            });
+
+            const vectorSource = new ol.source.Vector({
+                features: markers
+            });
+
+            const markerLayer = new ol.layer.Vector({
+                source: vectorSource,
+                name: 'MARKER'
+            });
+
+            markerLayer.setZIndex(6);
+            map.addLayer(markerLayer);
+
+        })
+        .catch(error => {
+            console.error('Fetch 실패:', error.message);
+            alert('데이터를 불러오지 못했습니다. 잠시 후 다시 시도해주세요.');
+        });
+</script>
+</body>
+</html>
